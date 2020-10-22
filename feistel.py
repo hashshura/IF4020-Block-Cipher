@@ -1,4 +1,5 @@
 import sys, getopt, hashlib
+import random
 from math import exp, expm1
 
 ROUNDS = 8
@@ -62,6 +63,20 @@ def main(argv):
 
     #print(ciphertext)
 
+def shuffle(message, key):
+    random.seed(key)
+    l = range(len(message))
+    random.shuffle(l)
+    return [message[x] for x in l]
+
+def unshuffle(shuffled_message, key):
+    random.seed(key)
+    l = range(len(shuffled_message))
+    random.shuffle(l)
+    out = [None] * len(shuffled_message)
+    for i, x in enumerate(l):
+        out[x] = shuffled_message[i]
+    return out
 
 def encryptMessage(key, message, mode):
     ciphertext = ""
@@ -99,7 +114,9 @@ def encryptMessage(key, message, mode):
             L[i] = LL_i + RL_i
             R[i] = xor(L[i - 1], scramble(R[i - 1], i, round_key))
 
-        ciphertext += (L[ROUNDS] + R[ROUNDS])
+        partial_cipher = L[ROUNDS] + R[ROUNDS]
+        shuffle(partial_cipher, key)
+        ciphertext += partial_cipher
         if (mode == "cbc"):
             key = subkeygen(L[0], key, i)
         if (mode == "counter"):
@@ -144,7 +161,9 @@ def decryptCipher(key, ciphertext, mode):
             R[i - 1] = LR_im + RR_im
             L[i - 1] = xor(R[i], scramble(R[i - 1], i, round_key))
 
-        message += (L[0] + R[0])
+        partial_message = L[0] + R[0]
+        unshuffle(partial_message, key)
+        message += partial_message
         if (mode == "cbc"):
             key = subkeygen(L[0], key, i)
         if (mode == "counter"):
